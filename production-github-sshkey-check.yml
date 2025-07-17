@@ -1,0 +1,45 @@
+---
+- hosts: production
+  become: true
+  vars:
+    github_ssh_mappings:
+      - local_user: alice
+        github_user: octocat
+      - local_user: bob
+        github_user: hubot
+
+  tasks:
+    - name: Create AuthorizedKeysCommand script using inline variable mapping
+      copy:
+        dest: /usr/local/bin/github-keys-command.sh
+        mode: '0755'
+        owner: root
+        group: root
+        content: |
+          #!/usr/bin/env bash
+          case "$1" in
+          {% for user in github_ssh_mappings %}
+            {{ user.local_user }}) GITHUB_USER="{{ user.github_user }}" ;;
+          {% endfor %}
+            *) exit 1 ;;
+          esac
+          curl -s "https://github.com/${GITHUB_USER}.keys"
+
+    - name: Configure sshd to use AuthorizedKeysCommand
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?AuthorizedKeysCommand '
+        line: 'AuthorizedKeysCommand /usr/local/bin/github-keys-command.sh'
+        state: present
+
+    - name: Configure sshd to use AuthorizedKeysCommandUser
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?AuthorizedKeysCommandUser '
+        line: 'AuthorizedKeysCommandUser nobody'
+        state: present
+
+    - name: Restart SSH service to apply changes
+      service:
+        name: ssh
+        state: restarted
