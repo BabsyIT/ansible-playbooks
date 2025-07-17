@@ -3,10 +3,10 @@
   become: true
   vars:
     github_ssh_mappings:
-      - local_user: alice
-        github_user: octocat
-      - local_user: bob
-        github_user: hubot
+      - local_user: stefan
+        github_user: stefan-ffr
+      - local_user: oliver
+        github_user: Oliver-Babsy
 
   tasks:
     - name: Create AuthorizedKeysCommand script using inline variable mapping
